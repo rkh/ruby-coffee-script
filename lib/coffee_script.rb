@@ -141,6 +141,37 @@ module CoffeeScript
           end
       end
     end
+
+    module Rhino
+      class << self
+        def supported?
+          require 'rhino'
+          true
+        rescue LoadError
+          false
+        end
+
+        def compile(script, options = {})
+          coffee_module['compile'].call(script, Source.bare_option => options[:bare])
+        rescue ::Rhino::RhinoError => e
+          raise CompilationError, e.message
+        end
+
+        private
+          def coffee_module
+            @coffee_module ||= build_coffee_module
+          end
+
+          def build_coffee_module
+            ::Rhino::Context.open do |context|
+              context.eval(Source.contents)
+              context['CoffeeScript']
+            end
+          rescue ::Rhino::RhinoError => e
+            raise EngineError, e.message
+          end
+      end
+    end
   end
 
   class << self
@@ -173,6 +204,7 @@ module CoffeeScript
 
   self.engine ||= [
     Engines::V8,
+    Engines::Rhino,
     Engines::Node,
     Engines::JavaScriptCore
   ].detect(&:supported?)
