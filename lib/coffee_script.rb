@@ -164,6 +164,11 @@ module CoffeeScript
 
           def build_coffee_module
             ::Rhino::Context.open do |context|
+              if context.respond_to? :optimization_level=
+                context.optimization_level = -1
+              else
+                context.instance_eval { @native.setOptimizationLevel(-1) }
+              end
               context.eval(Source.contents)
               context['CoffeeScript']
             end
